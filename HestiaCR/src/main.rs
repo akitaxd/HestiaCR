@@ -6,5 +6,5 @@ mod game;
 
 fn main() {
     let game = GameProcess::craftrise().unwrap();
-    game.find_symbol("java/lang/String");
+    game.find_class("cr/launcher/Config");
 }
