@@ -1,3 +1,6 @@
+pub mod jvm;
+pub mod offsets;
+
 use std::{mem, ptr};
 use winapi::shared::minwindef::{FALSE, LPCVOID, LPVOID};
 use winapi::um::memoryapi::ReadProcessMemory;
@@ -8,6 +11,9 @@ use crate::memory::{get_module_address_by_name, get_process_pid_by_name};
 pub struct GameProcess {
     pub hProcess:HANDLE,
     pub jvm_ptr:u64
+}
+pub trait Readable {
+   fn read<typ>(&self,addr:u64) -> typ;
 }
 impl GameProcess {
     pub fn craftrise() -> Option<GameProcess> {
@@ -22,7 +28,9 @@ impl GameProcess {
             })
         }
     }
-    pub fn read<typ>(&self,addr:u64) -> typ
+}
+impl Readable for GameProcess {
+    fn read<typ>(&self,addr:u64) -> typ
     {
         unsafe {
             let mut buffer: typ = mem::zeroed();
