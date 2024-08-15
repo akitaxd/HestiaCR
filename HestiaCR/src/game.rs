@@ -16,6 +16,18 @@ pub trait Readable {
    fn read<typ>(&self,addr:u64) -> typ;
 }
 impl GameProcess {
+    pub fn custom(process:&str) -> Option<GameProcess> {
+        let pid =
+            get_process_pid_by_name(process)?;
+        let jvm =
+            get_module_address_by_name(pid,"jvm.dll")?;
+        unsafe {
+            Some(GameProcess {
+                hProcess: OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid),
+                jvm_ptr: jvm,
+            })
+        }
+    }
     pub fn craftrise() -> Option<GameProcess> {
         let pid =
             get_process_pid_by_name("craftrise-x64.exe")?;

@@ -113,19 +113,27 @@ impl JVM_Control for GameProcess {
             return 0;
         }
         let mut hash:u64 = self.read(symbol+4);
+        println!("hash before loader: {hash}");
         if loader != 0 {
             let loader_data:u64 = self.read(loader);
             hash ^= (loader_data >> 8) & 0x7fffffff;
         }
+        println!("hash after loader: {hash}");
+
         let system_dictionary:u64 = self.read(self.jvm_ptr + JVM_SYSTEMDICTIONARY);
+        println!("system dic: {system_dictionary}");
+
         let system_dictionary_len:u64 = self.read(system_dictionary);
+        println!("system dic len {system_dictionary_len}");
         if system_dictionary_len == 0 {
             panic!("System dictionary size must be greater than zero");
         }
         let dictionary_ht:u64 = self.read(system_dictionary+8);
+        println!("dictionary ht {dictionary_ht}");
         let index = hash % system_dictionary_len;
+        println!("index {index}");
         let mut entry:u64 = self.read(dictionary_ht+index*8);
-        println!("hash: {}", hash);
+        println!("entry: {entry}");
         while entry != 0 {
             let entry_hash:u64 = self.read(entry);
             println!("current:{}", entry_hash);
