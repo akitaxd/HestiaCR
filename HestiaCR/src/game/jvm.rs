@@ -107,37 +107,26 @@ impl JVM_Control for GameProcess {
     }
 
     fn find_class_from_classloader(&self, name: &str, loader: u64) -> u64 {
-        //todo this func is not working. https://gitlab.com/yario_o/jimmy/-/blob/master/jimmy.c
         let mut symbol = self.find_symbol(name);
         if symbol == 0 {
             return 0;
         }
-        let mut hash:u64 = self.read(symbol+4);
-        println!("hash before loader: {hash}");
+        let mut hash:u32 = self.read(symbol+4);
         if loader != 0 {
             let loader_data:u64 = self.read(loader);
-            hash ^= (loader_data >> 8) & 0x7fffffff;
+            hash ^= ((loader_data >> 8) & 0x7fffffff) as u32;
         }
-        println!("hash after loader: {hash}");
-
         let system_dictionary:u64 = self.read(self.jvm_ptr + JVM_SYSTEMDICTIONARY);
-        println!("system dic: {system_dictionary}");
-
         let system_dictionary_len:u64 = self.read(system_dictionary);
-        println!("system dic len {system_dictionary_len}");
         if system_dictionary_len == 0 {
             panic!("System dictionary size must be greater than zero");
         }
         let dictionary_ht:u64 = self.read(system_dictionary+8);
-        println!("dictionary ht {dictionary_ht}");
-        let index = hash % system_dictionary_len;
-        println!("index {index}");
+        let index = hash as u64 % system_dictionary_len;
         let mut entry:u64 = self.read(dictionary_ht+index*8);
-        println!("entry: {entry}");
         while entry != 0 {
             let entry_hash:u64 = self.read(entry);
-            println!("current:{}", entry_hash);
-            if entry_hash == hash {
+            if entry_hash == hash as u64{
                 return self.read(entry+0x10);
             }
             entry = self.read(entry+8);

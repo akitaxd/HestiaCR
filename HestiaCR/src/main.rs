@@ -5,6 +5,7 @@ mod memory;
 mod game;
 
 fn main() {
-    let game = GameProcess::custom("java.exe").unwrap();
-    game.find_class("java/lang/String");
+    let game = GameProcess::craftrise().unwrap();
+    let klass = game.find_class("cr/launcher/Config");
+    println!("{klass}")
 }
