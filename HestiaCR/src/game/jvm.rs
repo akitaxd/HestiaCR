@@ -51,7 +51,7 @@ impl JVM_Control for GameProcess {
         let mut listelem:u64 = self.read(hash_map+index*8);
         while listelem != 0 {
             let hashlem:u32 = self.read(listelem);
-            if hashlem == hash as u32 {
+            if hashlem == hash {
                 let symbol:u64 = self.read(listelem+0x10);
                 let symbol_len:u16 = self.read(symbol);
                 if symbol_len == name.len() as u16
@@ -134,8 +134,8 @@ impl JVM_Control for GameProcess {
         let index = hash as u64 % system_dictionary_len;
         let mut entry:u64 = self.read(dictionary_ht+index*8);
         while entry != 0 {
-            let entry_hash:u64 = self.read(entry);
-            if entry_hash == hash as u64{
+            let entry_hash:u32 = self.read(entry);
+            if entry_hash == hash{
                 return self.read(entry+0x10);
             }
             entry = self.read(entry+8);
