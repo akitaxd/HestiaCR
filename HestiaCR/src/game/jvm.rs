@@ -1,6 +1,6 @@
 use std::ptr::eq;
 use crate::game::{GameProcess, Readable};
-use crate::game::offsets::{JVM_COMPRESSED_CLASS_POINTERS_BASE, JVM_COMPRESSED_CLASS_POINTERS_SHIFT, JVM_COMPRESSED_OOPS_BASE, JVM_COMPRESSED_OOPS_SHIFT, JVM_CP_BASE, JVM_KLASS_CONSTANTS, JVM_KLASS_FIELDS, JVM_KLASS_FIELDS_COUNT, JVM_KLASS_INTERFACES, JVM_KLASS_SUPER, JVM_SEED_SYMBOLTABLE, JVM_SYMBOLTABLE, JVM_SYSTEMCL, JVM_SYSTEMDICTIONARY, JVM_USE_COMPRESSED_CLASS_POINTERS, JVM_USE_COMPRESSED_OOPS};
+use crate::game::offsets::{JVM_COMPRESSED_CLASS_POINTERS_BASE, JVM_COMPRESSED_CLASS_POINTERS_SHIFT, JVM_COMPRESSED_OOPS_BASE, JVM_COMPRESSED_OOPS_SHIFT, JVM_CP_BASE, JVM_KLASS_CONSTANTS, JVM_KLASS_FIELDS, JVM_KLASS_FIELDS_COUNT, JVM_KLASS_INTERFACES, JVM_KLASS_JAVAMIRROR, JVM_KLASS_SUPER, JVM_SEED_SYMBOLTABLE, JVM_SYMBOLTABLE, JVM_SYSTEMCL, JVM_SYSTEMDICTIONARY, JVM_USE_COMPRESSED_CLASS_POINTERS, JVM_USE_COMPRESSED_OOPS};
 
 pub fn hashcode(str: &str) -> u64 {
     let mut h = 0u32;
@@ -18,15 +18,15 @@ pub trait JVM_Control {
     fn decode_klass(&self,oop:u64) -> u64;
     fn encode_klass(&self,oop:u64) -> u64;
     fn find_class_from_classloader(&self,name:&str,loader:u64) -> u64;
-
     fn find_class(&self,name:&str) -> u64;
     fn find_local_field(&self,klass:u64,namesym:u64,sigsym:u64) -> u16;
     fn find_interface_field(&self,klass:u64,namesym:u64,sigsym:u64) -> u16;
     fn find_field(&self,klass:u64,name_sym:u64,sig_sym:u64) -> u16;
-
     fn get_field_id(&self,klass:u64,name:&str,sig:&str) -> u16;
-
-
+    fn get_static_object_field(&self,klass:u64,field_id:u16) -> u64;
+    fn get_object_field(&self,oop:u64,field_id:u16) -> u64;
+    fn get_static_value_field<typ>(&self,klass:u64,field_id:u16) -> typ;
+    fn get_value_field<typ>(&self,klass:u64,field_id:u16) -> typ;
 
 
 }
@@ -212,4 +212,25 @@ impl JVM_Control for GameProcess {
         }
         id
     }
+
+    fn get_static_object_field(&self, klass: u64, field_id: u16) -> u64 {
+        let class_oop:u64 = self.read(klass + JVM_KLASS_JAVAMIRROR);
+        let value:u64 = self.read(class_oop + (field_id as u64));
+        self.decode_oop(value)
+    }
+
+    fn get_object_field(&self, oop: u64, field_id: u16) -> u64 {
+        let value:u64 = self.read(oop + (field_id as u64));
+        self.decode_oop(value)
+    }
+
+    fn get_static_value_field<typ>(&self, klass: u64, field_id: u16) -> typ {
+        let class_oop:u64 = self.read(klass + JVM_KLASS_JAVAMIRROR);
+        self.read(class_oop + (field_id as u64))
+    }
+
+    fn get_value_field<typ>(&self, oop: u64, field_id: u16) -> typ {
+        self.read(oop + (field_id as u64))
+    }
+
 }
