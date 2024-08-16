@@ -2,21 +2,21 @@ use std::ptr::eq;
 use crate::game::{GameProcess, Readable};
 use crate::game::offsets::{JVM_COMPRESSED_CLASS_POINTERS_BASE, JVM_COMPRESSED_CLASS_POINTERS_SHIFT, JVM_COMPRESSED_OOPS_BASE, JVM_COMPRESSED_OOPS_SHIFT, JVM_CP_BASE, JVM_KLASS_CONSTANTS, JVM_KLASS_FIELDS, JVM_KLASS_FIELDS_COUNT, JVM_KLASS_INTERFACES, JVM_KLASS_JAVAMIRROR, JVM_KLASS_SUPER, JVM_SEED_SYMBOLTABLE, JVM_SYMBOLTABLE, JVM_SYSTEMCL, JVM_SYSTEMDICTIONARY, JVM_USE_COMPRESSED_CLASS_POINTERS, JVM_USE_COMPRESSED_OOPS};
 
-pub fn hashcode(str: &str) -> u64 {
+pub fn hashcode(str: &str) -> u32 {
     let mut h = 0u32;
     for x in str.as_bytes() {
         h = h.wrapping_mul(31).wrapping_add(*x as u32);
     }
-    h as u64
+    h
 }
 
 pub trait JVM_Control {
     fn system_class_loader(&self) -> u64;
     fn find_symbol(&self,name:&str) -> u64;
-    fn decode_oop(&self,oop:u64) -> u64;
-    fn encode_oop(&self,oop:u64) -> u64;
-    fn decode_klass(&self,oop:u64) -> u64;
-    fn encode_klass(&self,oop:u64) -> u64;
+    fn decode_oop(&self,oop:u32) -> u64;
+    fn encode_oop(&self,oop:u64) -> u32;
+    fn decode_klass(&self,oop:u32) -> u64;
+    fn encode_klass(&self,oop:u64) -> u32;
     fn find_class_from_classloader(&self,name:&str,loader:u64) -> u64;
     fn find_class(&self,name:&str) -> u64;
     fn find_local_field(&self,klass:u64,namesym:u64,sigsym:u64) -> u16;
@@ -47,11 +47,11 @@ impl JVM_Control for GameProcess {
         if symbol_table_len == 0 {
             panic!("Symbol table size must be greater than zero")
         }
-        let index:u64 = (hash % symbol_table_len);
+        let index:u64 = (hash as u64 % symbol_table_len);
         let mut listelem:u64 = self.read(hash_map+index*8);
         while listelem != 0 {
-            let hashlem:u64 = self.read(listelem);
-            if hashlem == hash {
+            let hashlem:u32 = self.read(listelem);
+            if hashlem == hash as u32 {
                 let symbol:u64 = self.read(listelem+0x10);
                 let symbol_len:u16 = self.read(symbol);
                 if symbol_len == name.len() as u16
@@ -71,48 +71,49 @@ impl JVM_Control for GameProcess {
             }
             listelem = self.read(listelem + 8);
         }
-        panic!("Failed to find symbol {name}")
+       panic!("Failed to find symbol {name}")
     }
 
-    fn decode_oop(&self, oop: u64) -> u64 {
-        let flag:bool = self.read(self.jvm_ptr+JVM_USE_COMPRESSED_OOPS);
+    fn decode_oop(&self, oop: u32) -> u64 {
+        let flag: bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_OOPS);
         if flag {
-            let base:u64 = self.read(self.jvm_ptr+JVM_COMPRESSED_OOPS_BASE);
-            let shift:i64 = self.read(self.jvm_ptr+JVM_COMPRESSED_OOPS_SHIFT);
-            return (oop << shift) + base;
+            let base: u64 = self.read(self.jvm_ptr + JVM_COMPRESSED_OOPS_BASE);
+            let shift: i32 = self.read(self.jvm_ptr + JVM_COMPRESSED_OOPS_SHIFT);
+            return ((oop as u64) << (shift)) + base;
         }
-        oop
+        oop as u64
     }
 
-    fn encode_oop(&self, oop: u64) -> u64 {
-        let flag:bool = self.read(self.jvm_ptr+JVM_USE_COMPRESSED_OOPS);
+    fn encode_oop(&self, oop: u64) -> u32 {
+        let flag: bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_OOPS);
         if flag {
-            let base:u64 = self.read(self.jvm_ptr+JVM_COMPRESSED_OOPS_BASE);
-            let shift:i64 = self.read(self.jvm_ptr+JVM_COMPRESSED_OOPS_SHIFT);
-            return (oop - base) >> shift;
+            let base: u64 = self.read(self.jvm_ptr + JVM_COMPRESSED_OOPS_BASE);
+            let shift: i32 = self.read(self.jvm_ptr + JVM_COMPRESSED_OOPS_SHIFT);
+            return (oop + base) as u32 >> shift;
         }
-        oop
+        oop as u32
     }
 
-    fn decode_klass(&self, klass: u64) -> u64 {
-        let flag:bool = self.read(self.jvm_ptr+JVM_USE_COMPRESSED_CLASS_POINTERS);
+    fn decode_klass(&self, klass: u32) -> u64 {
+        let flag: bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_CLASS_POINTERS);
         if flag {
-            let base:u64 = self.read(self.jvm_ptr+JVM_COMPRESSED_CLASS_POINTERS_BASE);
-            let shift:i64  = self.read(self.jvm_ptr+JVM_COMPRESSED_CLASS_POINTERS_SHIFT);
-            return (klass << shift) + base;
+            let base: u64 = self.read(self.jvm_ptr + JVM_COMPRESSED_CLASS_POINTERS_BASE);
+            let shift: i32 = self.read(self.jvm_ptr + JVM_COMPRESSED_CLASS_POINTERS_SHIFT);
+            return ((klass as u64) << shift) + base;
         }
-        klass
+        klass as u64
     }
 
-    fn encode_klass(&self, klass: u64) -> u64 {
-        let flag:bool = self.read(self.jvm_ptr+JVM_USE_COMPRESSED_CLASS_POINTERS);
+    fn encode_klass(&self, klass: u64) -> u32 {
+        let flag: bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_CLASS_POINTERS);
         if flag {
-            let base:u64 = self.read(self.jvm_ptr+JVM_COMPRESSED_CLASS_POINTERS_BASE);
-            let shift:i64  = self.read(self.jvm_ptr+JVM_COMPRESSED_CLASS_POINTERS_SHIFT);
-            return (klass - shift as u64) >> base;
+            let base: u64 = self.read(self.jvm_ptr + JVM_COMPRESSED_CLASS_POINTERS_BASE);
+            let shift: i32 = self.read(self.jvm_ptr + JVM_COMPRESSED_CLASS_POINTERS_SHIFT);
+            return (klass + base) as u32 >> shift;
         }
-        klass
+        klass as u32
     }
+
 
     fn find_class_from_classloader(&self, name: &str, loader: u64) -> u64 {
         let mut symbol = self.find_symbol(name);
@@ -204,8 +205,8 @@ impl JVM_Control for GameProcess {
     }
 
     fn get_field_id(&self, klass: u64, name: &str, sig: &str) -> u16 {
-        let name_symbol = self.find_symbol(name);
         let sig_symbol = self.find_symbol(sig);
+        let name_symbol = self.find_symbol(name);
         let id = self.find_field(klass,name_symbol,sig_symbol);
         if id == 0 {
             panic!("Field Not Found {name} {sig}");
@@ -215,12 +216,12 @@ impl JVM_Control for GameProcess {
 
     fn get_static_object_field(&self, klass: u64, field_id: u16) -> u64 {
         let class_oop:u64 = self.read(klass + JVM_KLASS_JAVAMIRROR);
-        let value:u64 = self.read(class_oop + (field_id as u64));
+        let value:u32 = self.read(class_oop + (field_id as u64));
         self.decode_oop(value)
     }
 
     fn get_object_field(&self, oop: u64, field_id: u16) -> u64 {
-        let value:u64 = self.read(oop + (field_id as u64));
+        let value:u32 = self.read(oop + (field_id as u64));
         self.decode_oop(value)
     }
 
