@@ -1,6 +1,6 @@
 use std::ptr::eq;
 use crate::game::{GameProcess, Readable};
-use crate::game::offsets::{JVM_COMPRESSED_CLASS_POINTERS_BASE, JVM_COMPRESSED_CLASS_POINTERS_SHIFT, JVM_COMPRESSED_OOPS_BASE, JVM_COMPRESSED_OOPS_SHIFT, JVM_CP_BASE, JVM_KLASS_CONSTANTS, JVM_KLASS_FIELDS, JVM_KLASS_FIELDS_COUNT, JVM_KLASS_INTERFACES, JVM_KLASS_JAVAMIRROR, JVM_KLASS_SUPER, JVM_SEED_SYMBOLTABLE, JVM_SYMBOLTABLE, JVM_SYSTEMCL, JVM_SYSTEMDICTIONARY, JVM_USE_COMPRESSED_CLASS_POINTERS, JVM_USE_COMPRESSED_OOPS};
+use crate::game::offsets::{JVM_COMPRESSED_CLASS_POINTERS_BASE, JVM_COMPRESSED_CLASS_POINTERS_SHIFT, JVM_COMPRESSED_OOPS_BASE, JVM_COMPRESSED_OOPS_SHIFT, JVM_CP_BASE, JVM_KLASS_CONSTANTS, JVM_KLASS_FIELDS, JVM_KLASS_FIELDS_COUNT, JVM_KLASS_INTERFACES, JVM_KLASS_JAVAMIRROR, JVM_KLASS_SEC_SUPERS, JVM_KLASS_SUPER, JVM_KLASS_SUPER_OFFSET, JVM_OOP_KLASS, JVM_SEED_SYMBOLTABLE, JVM_SYMBOLTABLE, JVM_SYSTEMCL, JVM_SYSTEMDICTIONARY, JVM_USE_COMPRESSED_CLASS_POINTERS, JVM_USE_COMPRESSED_OOPS};
 
 pub fn hashcode(str: &str) -> u32 {
     let mut h = 0u32;
@@ -27,6 +27,9 @@ pub trait JVM_Control {
     fn get_object_field(&self,oop:u64,field_id:u16) -> u64;
     fn get_static_value_field<typ>(&self,klass:u64,field_id:u16) -> typ;
     fn get_value_field<typ>(&self,klass:u64,field_id:u16) -> typ;
+    fn is_instance_of(&self,obj:u64,klass:u64) -> bool;
+    fn get_obj_klass(&self,obj:u64) -> u64;
+    fn get_super_klass(&self,obj:u64) -> u64;
 
 
 }
@@ -234,4 +237,35 @@ impl JVM_Control for GameProcess {
         self.read(oop + (field_id as u64))
     }
 
+    fn is_instance_of(&self, obj: u64, klass: u64) -> bool { //todo
+       /* let obj_klass = self.get_obj_klass(obj);
+        let offset:u32 = self.read(obj_klass + JVM_KLASS_SUPER_OFFSET);
+        let mut superr:u64 = self.read(obj_klass + offset as u64);
+        if superr == klass || obj_klass == klass {
+           return true
+        }
+        let supers:u64 = self.read(obj_klass + JVM_KLASS_SEC_SUPERS);
+        let supers_count:i32 = self.read(supers);
+        for i in 0..supers_count {
+            superr = self.read(supers + i as u64*8);
+            if superr == klass {
+                return true
+            }
+        }
+        false*/
+        true
+    }
+
+    fn get_obj_klass(&self, obj: u64) -> u64 {
+        let flag:bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_CLASS_POINTERS);
+        if flag {
+            let klass:u32 = self.read(obj + JVM_OOP_KLASS);
+            return self.decode_klass(klass)
+        }
+        self.read(obj + JVM_OOP_KLASS)
+    }
+
+    fn get_super_klass(&self, obj: u64) -> u64 {
+        self.read(obj + JVM_KLASS_SUPER)
+    }
 }

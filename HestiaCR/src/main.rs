@@ -12,6 +12,7 @@ mod module;
 mod ui;
 pub static mut collection:Option<Mutex<ModuleCollection>> = None;
 fn main() -> eframe::Result {
+
     unsafe { collection = Some(Mutex::from(ModuleCollection::new())); }
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()

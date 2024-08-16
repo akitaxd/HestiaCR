@@ -9,12 +9,16 @@ pub struct UI {
 
 impl eframe::App for UI {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        custom_window_frame(ctx, "hestia", |ui| unsafe {
+        custom_window_frame(ctx, "hestia beta", |ui| unsafe {
             let collection_wrapper = collection.as_ref().unwrap();
             let mut lock = collection_wrapper.lock().unwrap();
-            ui.checkbox(&mut lock.trigger_bot.enabled, "Trigger Bot");
+            ui.heading("Trigger Bot");
+            ui.checkbox(&mut lock.trigger_bot.enabled, "Enabled");
             ui.add(egui::Slider::new(&mut lock.trigger_bot.sleep, 40..=170).text("Sleep"));
             ui.separator();
+            ui.heading("Aim Assist");
+            ui.checkbox(&mut lock.aim_assist.enabled, "Enabled");
+            ui.add(egui::Slider::new(&mut lock.aim_assist.speed, 0..=15).text("Speed"));
         });
     }
 
@@ -25,10 +29,9 @@ impl eframe::App for UI {
 
 fn custom_window_frame(ctx: &egui::Context, title: &str, add_contents: impl FnOnce(&mut egui::Ui)) {
     use egui::*;
-
     let panel_frame = egui::Frame {
         fill: ctx.style().visuals.window_fill(),
-        rounding: 10.0.into(),
+        rounding: 8.0.into(),
         stroke: ctx.style().visuals.widgets.noninteractive.fg_stroke,
         outer_margin: 0.5.into(), // so the stroke is within the bounds
         ..Default::default()
