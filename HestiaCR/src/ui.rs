@@ -19,6 +19,9 @@ impl eframe::App for UI {
             ui.heading("Aim Assist");
             ui.checkbox(&mut lock.aim_assist.enabled, "Enabled");
             ui.add(egui::Slider::new(&mut lock.aim_assist.speed, 0..=15).text("Speed"));
+            ui.add(egui::Slider::new(&mut lock.aim_assist.fov, 0.0..=120.0).text("Fov"));
+            ui.separator();
+
         });
     }
 

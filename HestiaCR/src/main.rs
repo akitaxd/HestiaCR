@@ -1,3 +1,6 @@
+#![windows_subsystem = "windows"]
+
+
 use std::fmt::Debug;
 use std::sync::Mutex;
 use std::thread;

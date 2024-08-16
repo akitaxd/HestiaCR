@@ -9,6 +9,7 @@ pub struct TriggerBot {
     pub sleep:u64,
     pub enabled:bool,
     pub last_clicked:u128,
+    pub last_war:u128,
 }
 impl Tick for TriggerBot {
     fn tick(&mut self, game: &GameProcess) -> Option<()>
@@ -35,8 +36,11 @@ impl Tick for TriggerBot {
                     }
                     let mouse_over_entity = game.get_object_field(mouse_over_object, field_id_3)?;
 
-                    if mouse_over_entity != 0 {
+                    if mouse_over_entity != 0 || now - self.last_war < 500 {
                         if game.is_instance_of(mouse_over_entity,game.find_class("com/craftrise/mg")?) {
+                            if mouse_over_entity != 0 {
+                                self.last_war = now;
+                            }
                             let mut input = INPUT {
                                 type_: INPUT_MOUSE,
                                 u: std::mem::zeroed(),

@@ -114,6 +114,7 @@ pub fn mouse_move(x:i64,y:i64)
 pub struct AimAssist {
     pub enabled:bool,
     pub speed:i64,
+    pub fov:f32,
     pub last_target: LastTarget,
 }
 impl Tick for AimAssist {
@@ -137,26 +138,34 @@ impl Tick for AimAssist {
         }
         let mut mouse_over_entity:u64  =  0;
         if mouse_over_object != 0 {mouse_over_entity = game.get_object_field(mouse_over_object, field_id_3)?;}
-        if self.last_target.time_since() > 1000 && mouse_over_entity != 0 {
-            if game.is_instance_of(mouse_over_entity,game.find_class("com/craftrise/mg")?) {
+        let the_player = game.get_static_object_field(klass_3 , field_id_4)?;
+        let my_position = get_entity_position(the_player,&game)?;
+        let mut position = Position { x: 0.0, y: 0.0, z: 0.0 };
+        let mut distance = 99f64;
+        if self.last_target.target != 0 {
+            position = get_entity_position(self.last_target.target,&game)?;
+            distance = position.distance_to(&my_position);
+        }
+        if distance > 15.0 {
+            self.last_target = LastTarget::new(0);
+        }
+        if mouse_over_entity != 0 {
+            if self.last_target.target == 0 || distance > 4.7 {
                 self.last_target = LastTarget::new(mouse_over_entity);
             }
         }
-        if self.last_target.time_since() < 5000 && self.last_target.target != 0 {
-            let the_player = game.get_static_object_field(klass_3 , field_id_4)?;
-            let my_position = get_entity_position(the_player,&game)?;
-            let position = get_entity_position(self.last_target.target,&game)?;
-            let distance = position.distance_to(&my_position);
+        if self.last_target.target != 0 {
             if distance > 1.0 && distance < 4.7 {
                 let current_rotations = rotations(the_player,&game)?;
                 let rotations = my_position.rotation_to(&position);
-                if (current_rotations[0] - rotations[0]).abs() > self.speed as f32 * 2.0 || mouse_over_entity != self.last_target.target {
+                let diff = (current_rotations[0] - rotations[0]).abs();
+                if (diff > self.speed as f32) && (diff < self.fov) {
                     if current_rotations[0] > rotations[0] + self.speed as f32 * 2.0 {
                         for _ in 0..self.speed {
                             mouse_move(-1,0);
                         }
                     }
-                    if current_rotations[0] < rotations[0] - self.speed as f32* 2.0{
+                    if current_rotations[0] < rotations[0] - self.speed as f32 * 2.0 {
                         for _ in 0..self.speed {
                             mouse_move(1,0);
                         }
