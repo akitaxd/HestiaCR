@@ -11,31 +11,32 @@ pub struct TriggerBot {
     pub last_clicked:u128,
 }
 impl Tick for TriggerBot {
-    fn tick(&mut self, game: &GameProcess) {
+    fn tick(&mut self, game: &GameProcess) -> Option<()>
+    {
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
         if (now - self.last_clicked) > self.sleep as u128 {
             self.last_clicked = now;
-            let klass = game.find_class("com/craftrise/client/S");
-            let klass_2 = game.find_class("com/craftrise/pV");
-            let field_id_4 = game.get_field_id(klass, "bw", "Lcom/craftrise/client/dG;");
-            let field_id_3 = game.get_field_id(klass_2, "a", "Lcom/craftrise/m9;");
-            let field_id_2 = game.get_field_id(klass, "H", "Lcom/craftrise/pV;");
-            let field_id = game.get_field_id(klass, "cj", "Lcom/craftrise/client/S;");
+            let klass = game.find_class("com/craftrise/client/S")?;
+            let klass_2 = game.find_class("com/craftrise/pV")?;
+            let field_id_4 = game.get_field_id(klass, "bw", "Lcom/craftrise/client/dG;")?;
+            let field_id_3 = game.get_field_id(klass_2, "a", "Lcom/craftrise/m9;")?;
+            let field_id_2 = game.get_field_id(klass, "H", "Lcom/craftrise/pV;")?;
+            let field_id = game.get_field_id(klass, "cj", "Lcom/craftrise/client/S;")?;
             unsafe {
-                let minecraft = game.get_static_object_field(klass, field_id);
+                let minecraft = game.get_static_object_field(klass, field_id)?;
                 if minecraft == 0 {
-                    return;
+                    return None;
                 }
-                let gui = game.get_object_field(minecraft, field_id_4);
+                let gui = game.get_object_field(minecraft, field_id_4)?;
                 if gui == 0 {
-                    let mouse_over_object = game.get_object_field(minecraft, field_id_2);
+                    let mouse_over_object = game.get_object_field(minecraft, field_id_2)?;
                     if mouse_over_object == 0 {
-                        return;
+                        return None;
                     }
-                    let mouse_over_entity = game.get_object_field(mouse_over_object, field_id_3);
+                    let mouse_over_entity = game.get_object_field(mouse_over_object, field_id_3)?;
 
                     if mouse_over_entity != 0 {
-                        if game.is_instance_of(mouse_over_entity,game.find_class("com/craftrise/mg")) {
+                        if game.is_instance_of(mouse_over_entity,game.find_class("com/craftrise/mg")?) {
                             let mut input = INPUT {
                                 type_: INPUT_MOUSE,
                                 u: std::mem::zeroed(),
@@ -56,5 +57,6 @@ impl Tick for TriggerBot {
                 }
             }
         }
+        Some(())
     }
 }

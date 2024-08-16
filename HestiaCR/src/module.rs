@@ -16,16 +16,17 @@ impl ModuleCollection {
             aim_assist: AimAssist { enabled: false, speed: 2, last_target: Default::default() },
         }
     }
-    pub fn tick(&mut self, game:&GameProcess) {
+    pub fn tick(&mut self, game:&GameProcess) -> Option<()>{
         if self.trigger_bot.enabled {
             self.trigger_bot.tick(game);
         }
         if self.aim_assist.enabled {
             self.aim_assist.tick(game);
         }
+        Some(())
     }
 
 }
 pub trait Tick {
-    fn tick(&mut self,game:&GameProcess);
+    fn tick(&mut self,game:&GameProcess) -> Option<()>;
 }

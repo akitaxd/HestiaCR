@@ -13,7 +13,7 @@ pub struct GameProcess {
     pub jvm_ptr:u64
 }
 pub trait Readable {
-   fn read<typ>(&self,addr:u64) -> typ;
+   fn read<typ>(&self,addr:u64) -> Option<typ>;
 }
 impl GameProcess {
     pub fn custom(process:&str) -> Option<GameProcess> {
@@ -42,14 +42,14 @@ impl GameProcess {
     }
 }
 impl Readable for GameProcess {
-    fn read<typ>(&self,addr:u64) -> typ
+    fn read<typ>(&self,addr:u64) -> Option<typ>
     {
         unsafe {
             let mut buffer: typ = mem::zeroed();
             if ReadProcessMemory(self.hProcess,addr as LPCVOID,&mut buffer as *mut _ as LPVOID, mem::size_of_val(&buffer),ptr::null_mut()) == FALSE {
-                panic!("Read fail");
+                return None
             }
-            buffer
+            Some(buffer)
         }
     }
 }
