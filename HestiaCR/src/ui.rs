@@ -1,4 +1,4 @@
-use egui::ViewportCommand;
+use egui::{CentralPanel, ViewportCommand};
 use crate::collection;
 use crate::module::ModuleCollection;
 
@@ -28,7 +28,7 @@ impl eframe::App for UI {
 }
 
 fn custom_window_frame(ctx: &egui::Context, title: &str, add_contents: impl FnOnce(&mut egui::Ui)) {
-    use egui::*;
+    catppuccin_egui::set_theme(ctx, catppuccin_egui::LATTE);
     let panel_frame = egui::Frame {
         fill: ctx.style().visuals.window_fill(),
         rounding: 8.0.into(),

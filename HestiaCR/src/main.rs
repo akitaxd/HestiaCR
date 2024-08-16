@@ -34,7 +34,8 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "Hestia",
         options,
-        Box::new(|_cc| Ok(Box::new(UI {
+        Box::new(|_cc|
+            Ok(Box::new(UI {
             visible: true,
         }))),
     )
