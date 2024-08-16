@@ -1,5 +1,6 @@
+use std::ptr::eq;
 use crate::game::{GameProcess, Readable};
-use crate::game::offsets::{JVM_COMPRESSED_CLASS_POINTERS_BASE, JVM_COMPRESSED_CLASS_POINTERS_SHIFT, JVM_COMPRESSED_OOPS_BASE, JVM_COMPRESSED_OOPS_SHIFT, JVM_SEED_SYMBOLTABLE, JVM_SYMBOLTABLE, JVM_SYSTEMCL, JVM_SYSTEMDICTIONARY, JVM_USE_COMPRESSED_CLASS_POINTERS, JVM_USE_COMPRESSED_OOPS};
+use crate::game::offsets::{JVM_COMPRESSED_CLASS_POINTERS_BASE, JVM_COMPRESSED_CLASS_POINTERS_SHIFT, JVM_COMPRESSED_OOPS_BASE, JVM_COMPRESSED_OOPS_SHIFT, JVM_CP_BASE, JVM_KLASS_CONSTANTS, JVM_KLASS_FIELDS, JVM_KLASS_FIELDS_COUNT, JVM_KLASS_INTERFACES, JVM_KLASS_SUPER, JVM_SEED_SYMBOLTABLE, JVM_SYMBOLTABLE, JVM_SYSTEMCL, JVM_SYSTEMDICTIONARY, JVM_USE_COMPRESSED_CLASS_POINTERS, JVM_USE_COMPRESSED_OOPS};
 
 pub fn hashcode(str: &str) -> u64 {
     let mut h = 0u32;
@@ -19,6 +20,13 @@ pub trait JVM_Control {
     fn find_class_from_classloader(&self,name:&str,loader:u64) -> u64;
 
     fn find_class(&self,name:&str) -> u64;
+    fn find_local_field(&self,klass:u64,namesym:u64,sigsym:u64) -> u16;
+    fn find_interface_field(&self,klass:u64,namesym:u64,sigsym:u64) -> u16;
+    fn find_field(&self,klass:u64,name_sym:u64,sig_sym:u64) -> u16;
+
+    fn get_field_id(&self,klass:u64,name:&str,sig:&str) -> u16;
+
+
 
 
 }
@@ -136,5 +144,72 @@ impl JVM_Control for GameProcess {
 
     fn find_class(&self, name: &str) -> u64 {
         self.find_class_from_classloader(name,self.system_class_loader())
+    }
+
+    fn find_local_field(&self, klass: u64, namesym: u64, sigsym: u64) -> u16 {
+        let size_of_unsigned_short = size_of_val(&0u16) as u64;
+
+        let constants:u64 = self.read(klass + JVM_KLASS_CONSTANTS);
+        let mut fields:u64 = self.read(klass + JVM_KLASS_FIELDS);
+        let field_count:u64 = self.read(klass + JVM_KLASS_FIELDS_COUNT);
+        fields+=4;
+        for i in 0..field_count {
+            let field:u64 = (fields + i * 6 * size_of_unsigned_short);
+            let name_id:u16 = self.read(field + size_of_unsigned_short);
+            let sig_id:u16 = self.read(field + 2*size_of_unsigned_short);
+            let name_ptr:u64 = self.read(constants + JVM_CP_BASE + (name_id as u64)*8);
+            let sig_ptr:u64 = self.read(constants + JVM_CP_BASE + (sig_id as u64)*8);
+            if namesym == name_ptr && sigsym == sig_ptr
+            {
+                let mut offset:u16 = self.read(field+4*size_of_unsigned_short);
+                offset >>= 2;
+                return offset;
+            }
+
+        }
+        0
+    }
+
+    fn find_interface_field(&self, klass: u64, namesym: u64, sigsym: u64) -> u16 {
+        let mut interfaces:u64 = self.read(klass + JVM_KLASS_INTERFACES);
+        let mut offset:u16  = 0;
+        let interfaces_size:i32 = self.read(interfaces);
+        interfaces+=8;
+        for i in 0..interfaces_size {
+            let interface:u64 = self.read(interfaces + (i as u64) * 8);
+            offset = self.find_local_field(interface,namesym,sigsym);
+            if offset != 0 {
+                return offset;
+            }
+            offset = self.find_interface_field(interface,namesym,sigsym);
+            if offset != 0 {
+                return offset;
+            }
+        }
+        0
+    }
+
+    fn find_field(&self, klass: u64, name_symbol: u64, sig_symbol: u64) -> u16 {
+        let mut offset:u16 = self.find_local_field(klass,name_symbol,sig_symbol);
+        if offset == 0 {
+            offset = self.find_interface_field(klass,name_symbol,sig_symbol);
+            if offset == 0 {
+                let super_klass:u64 = self.read(klass + JVM_KLASS_SUPER);
+                if super_klass != 0 {
+                    return self.find_field(super_klass,name_symbol,sig_symbol);
+                }
+            }
+        }
+        offset
+    }
+
+    fn get_field_id(&self, klass: u64, name: &str, sig: &str) -> u16 {
+        let name_symbol = self.find_symbol(name);
+        let sig_symbol = self.find_symbol(sig);
+        let id = self.find_field(klass,name_symbol,sig_symbol);
+        if id == 0 {
+            panic!("Field Not Found {name} {sig}");
+        }
+        id
     }
 }
