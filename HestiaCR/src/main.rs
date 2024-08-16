@@ -1,44 +1,40 @@
 use std::fmt::Debug;
+use std::sync::Mutex;
 use std::thread;
-use std::time::Duration;
-use winapi::um::winuser::{GetAsyncKeyState, SendInput, INPUT, INPUT_MOUSE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEINPUT, VK_LBUTTON};
 use crate::game::GameProcess;
 use crate::game::jvm::JVM_Control;
+use crate::module::{ModuleCollection, Tick};
+use crate::ui::UI;
 
 mod memory;
 mod game;
-
-fn main() {
-    let game = GameProcess::craftrise().unwrap();
-    let klass = game.find_class("com/craftrise/client/S");
-    let klass_2 = game.find_class("com/craftrise/pV");
-    let field_id_3 = game.get_field_id(klass_2,"a","Lcom/craftrise/m9;");
-    let field_id_2 = game.get_field_id(klass,"H","Lcom/craftrise/pV;");
-    let field_id = game.get_field_id(klass,"cj","Lcom/craftrise/client/S;");
-    loop {
-        unsafe {
-            let minecraft = game.get_static_object_field(klass,field_id);
-            let mouse_over_object = game.get_object_field(minecraft,field_id_2);
-            let mouse_over_entity = game.get_object_field(mouse_over_object,field_id_3);
-            if mouse_over_entity != 0 {
-                let mut input = INPUT {
-                    type_: INPUT_MOUSE,
-                    u: std::mem::zeroed(),
-                };
-                *input.u.mi_mut() = MOUSEINPUT {
-                    dx: 0,
-                    dy: 0,
-                    mouseData: 0,
-                    dwFlags: MOUSEEVENTF_LEFTDOWN,
-                    time: 0,
-                    dwExtraInfo: 0,
-                };
-                SendInput(1, &mut input, std::mem::size_of::<INPUT>() as i32);
-                input.u.mi_mut().dwFlags = MOUSEEVENTF_LEFTUP;
-                SendInput(1, &mut input, std::mem::size_of::<INPUT>() as i32);
-            }
-            thread::sleep(Duration::from_millis(85));
+mod module;
+mod ui;
+pub static mut collection:Option<Mutex<ModuleCollection>> = None;
+fn main() -> eframe::Result {
+    unsafe { collection = Some(Mutex::from(ModuleCollection::new())); }
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_decorations(false)
+            .with_inner_size([400.0, 400.0])
+            .with_min_inner_size([400.0, 400.0])
+            .with_resizable(false)
+            .with_transparent(true),
+        ..Default::default()
+    };
+    thread::spawn(|| unsafe {
+        let game = GameProcess::craftrise().unwrap();
+        loop {
+            let collection_wrapper = collection.as_ref().unwrap();
+            let mut lock = collection_wrapper.lock().unwrap();
+            lock.tick(&game);
         }
-    }
-
+    });
+    eframe::run_native(
+        "Hestia",
+        options,
+        Box::new(|_cc| Ok(Box::new(UI {
+            visible: true,
+        }))),
+    )
 }

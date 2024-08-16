@@ -4,4 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+eframe = "0.28.1"
+egui = "0.28.1"
 winapi = { version = "0.3.9", features = ["winbase", "psapi","processthreadsapi","winnt","minwindef","libloaderapi","memoryapi","winuser"] }
