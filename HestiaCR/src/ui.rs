@@ -9,31 +9,49 @@ pub struct UI {
 
 impl eframe::App for UI {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        custom_window_frame(ctx, "hestia beta", |ui| unsafe {
+        custom_window_frame(ctx, "hestia", |ui| unsafe {
             let collection_wrapper = collection.as_ref().unwrap();
             let mut lock = collection_wrapper.lock().unwrap();
             egui::CollapsingHeader::new("Combat")
                 .default_open(false)
                 .show(ui, |ui| {
-                    ui.heading("Trigger Bot");
-                    ui.checkbox(&mut lock.trigger_bot.enabled, "Enabled");
-                    ui.add(egui::Slider::new(&mut lock.trigger_bot.sleep, 40..=170).text("Sleep"));
-                    ui.separator();
-                    ui.heading("Aim Assist");
-                    ui.checkbox(&mut lock.aim_assist.enabled, "Enabled");
-                    ui.add(egui::Slider::new(&mut lock.aim_assist.speed, 0..=15).text("Speed"));
-                    ui.add(egui::Slider::new(&mut lock.aim_assist.fov, 0.0..=120.0).text("Fov"));
+                    egui::CollapsingHeader::new("Trigger Bot")
+                        .default_open(false).show(ui,|ui| {
+                        ui.checkbox(&mut lock.trigger_bot.enabled, "Enabled");
+                        ui.add(egui::Slider::new(&mut lock.trigger_bot.sleep, 40..=170).text("Sleep"));
+                    });
+                    egui::CollapsingHeader::new("Aim Assist")
+                        .default_open(false).show(ui,|ui| {
+                        ui.checkbox(&mut lock.aim_assist.enabled, "Enabled");
+                        ui.add(egui::Slider::new(&mut lock.aim_assist.speed, 0..=15).text("Speed"));
+                        ui.add(egui::Slider::new(&mut lock.aim_assist.fov, 0.0..=120.0).text("Fov"));
+                    });
                 });
-
             ui.separator();
-
-
             egui::CollapsingHeader::new("Misc")
                 .default_open(false)
                 .show(ui, |ui| {
-                    ui.heading("Fast Place");
-                    ui.checkbox(&mut lock.fast_place.enabled , "Enabled");
-                    ui.checkbox(&mut lock.fast_place.disable_on_rod , "Disable When Holding Rod");
+                    egui::CollapsingHeader::new("Fast Place")
+                        .default_open(false).show(ui,|ui| {
+                        ui.checkbox(&mut lock.fast_place.enabled , "Enabled");
+                        ui.checkbox(&mut lock.fast_place.disable_on_rod , "Disable on Projectiles");
+                    });
+                    egui::CollapsingHeader::new("Rod Assist")
+                        .default_open(false).show(ui,|ui| {
+                        egui::CollapsingHeader::new("Rod Pullback Overrider")
+                            .default_open(false).show(ui,|ui| {
+                            ui.checkbox(&mut lock.rod_assist.pullback_enabled , "Enabled");
+                            ui.checkbox(&mut lock.rod_assist.switch_on_pullback , "Switch on Pullback");
+                            ui.add(egui::Slider::new(&mut lock.rod_assist.switch_delay, 5..=150).text("Switch Delay"));
+                            ui.add(egui::Slider::new(&mut lock.rod_assist.pullback_delay, 50..=800).text("Pullback Delay"));
+                            ui.add(egui::Slider::new(&mut lock.rod_assist.pullback_point, 1..=4).text("Pullback Point"));
+                            ui.add(egui::Slider::new(&mut lock.rod_assist.trigger_point, 0..=4).text("Trigger Point"));
+                        });
+                        egui::CollapsingHeader::new("Rod Aim Assist")
+                            .default_open(false).show(ui,|ui| {
+                            ui.checkbox(&mut lock.rod_assist.aimbot_enabled , "Enabled");
+                        });
+                    });
                 });
         });
     }
@@ -58,10 +76,11 @@ fn setup_custom_fonts(ctx: &egui::Context) {
 
 
 fn custom_window_frame(ctx: &egui::Context, title: &str, add_contents: impl FnOnce(&mut egui::Ui)) {
+    setup_custom_fonts(ctx);
     catppuccin_egui::set_theme(ctx, catppuccin_egui::LATTE);
     let panel_frame = egui::Frame {
         fill: ctx.style().visuals.window_fill(),
-        rounding: 12.0.into(),
+        rounding: 6.0.into(),
         stroke: ctx.style().visuals.widgets.noninteractive.fg_stroke,
         outer_margin: 0.5.into(), // so the stroke is within the bounds
         ..Default::default()

@@ -43,25 +43,26 @@ impl Tick for AimAssist {
             self.last_target = LastTarget::new(0);
         }
         if mouse_over_entity != 0 {
-            if self.last_target.target == 0 || distance > 4.7 {
+            if self.last_target.target == 0 || distance > 5.0 {
                 self.last_target = LastTarget::new(mouse_over_entity);
-                position = get_entity_position(self.last_target.target,game)?;
-                distance = position.distance_to(&my_position);
             }
         }
+        position = get_entity_position(self.last_target.target,game)?;
+        distance = position.distance_to(&my_position);
         unsafe {
             if self.last_target.target != 0 && is_visible(self.last_target.target,game)? && GetAsyncKeyState(VK_LBUTTON) != 0 {
-                if distance > 1.0 && distance < 4.7 {
+                if distance > 1.0 && distance < 6.0 {
                     let current_rotations = rotations(the_player,game)?;
                     let rotations = my_position.rotation_to(&position);
                     let diff = (current_rotations[0] - rotations[0]).abs();
-                    if (diff > self.speed as f32) && (diff < self.fov) {
-                        if current_rotations[0] > rotations[0] + self.speed as f32 * 2.0 {
+                    let diff_2 = (current_rotations[1] - rotations[1]).abs();
+                    if diff > self.speed as f32 && diff < self.fov && diff_2 < self.fov {
+                        if current_rotations[0] > rotations[0] + self.speed as f32 {
                             for _ in 0..self.speed {
                                 mouse_move(-1,0);
                             }
                         }
-                        if current_rotations[0] < rotations[0] - self.speed as f32 * 2.0 {
+                        if current_rotations[0] < rotations[0] - self.speed as f32  {
                             for _ in 0..self.speed {
                                 mouse_move(1,0);
                             }

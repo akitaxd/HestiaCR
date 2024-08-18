@@ -17,7 +17,6 @@ impl Tick for TriggerBot {
     {
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
         if (now - self.last_clicked) > self.sleep as u128 {
-            self.last_clicked = now;
             let klass = game.find_class("com/craftrise/client/S")?;
             let klass_2 = game.find_class("com/craftrise/pV")?;
             let field_id_4 = game.get_field_id(klass, "bw", "Lcom/craftrise/client/dG;")?;
@@ -36,13 +35,12 @@ impl Tick for TriggerBot {
                         return None;
                     }
                     let mouse_over_entity = game.get_object_field(mouse_over_object, field_id_3)?;
-
-                    if mouse_over_entity != 0 || now - self.last_war < 6500 {
+                    if mouse_over_entity != 0 || now - self.last_war < 2000 {
                         if (mouse_over_entity == 0 || is_visible(mouse_over_entity,game)?) && GetAsyncKeyState(VK_LBUTTON) != 0 {
-                            println!("qwe");
                             if mouse_over_entity != 0 {
                                 self.last_war = now;
                             }
+                            self.last_clicked = now;
                             PostMessageA(game.hWindow, WM_LBUTTONDOWN, MK_LBUTTON as usize, (100 & 0xFFFF) | ((100 & 0xFFFF) << 16));
                             PostMessageA(game.hWindow, WM_LBUTTONUP, 0, (100 & 0xFFFF) | ((100 & 0xFFFF) << 16));
                         }

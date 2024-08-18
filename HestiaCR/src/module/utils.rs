@@ -6,7 +6,8 @@ use winapi::um::winuser::INPUT;
 use winapi::um::winuser::LPINPUT;
 
 use std::f64::consts::PI;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use crate::game::GameProcess;
 use crate::game::jvm::JVM_Control;
 
@@ -61,6 +62,44 @@ impl LastTarget {
         now - self.time
     }
 }
+pub fn is_rod(is:u64 , game: &mut GameProcess) -> Option<bool>
+{
+    let item_stack = game.find_class("com/craftrise/gM")?;
+    let item_klass = game.find_class("com/craftrise/b3")?;
+    let item_field_id = game.get_field_id(item_stack,"c","Lcom/craftrise/b3;")?;
+    let max_d_id = game.get_field_id(item_klass,"d","I")?;
+    let item = game.get_object_field(is,item_field_id)?;
+    let x:i32 = game.get_value_field(item,max_d_id)?;
+    Some(x == 64)
+}
+pub fn max_rc_delay(game: &mut GameProcess) -> Option<()>
+{
+    let klass = game.find_class("com/craftrise/client/S")?;
+    let klass_2 = game.find_class("cr/launcher/main/a")?;
+    let field_id = game.get_field_id(klass, "cj", "Lcom/craftrise/client/S;")?;
+    let field_id_2 = game.get_field_id(klass_2, "q", "Lcom/craftrise/client/fa;")?;
+    let field_id_3 = game.get_field_id(klass, "cB", "I")?;
+    let minecraft = game.get_static_object_field(klass, field_id)?;
+    let the_player = game.get_static_object_field(klass_2, field_id_2)?;
+    let held_item = get_held_item(the_player, game)?;
+    let mut count = get_stack_count(held_item, game)?;
+    game.write_field(minecraft,field_id_3,4i32);
+    Some(())
+}
+pub fn reset_rc_delay(game: &mut GameProcess) -> Option<()>
+{
+    let klass = game.find_class("com/craftrise/client/S")?;
+    let klass_2 = game.find_class("cr/launcher/main/a")?;
+    let field_id = game.get_field_id(klass, "cj", "Lcom/craftrise/client/S;")?;
+    let field_id_2 = game.get_field_id(klass_2, "q", "Lcom/craftrise/client/fa;")?;
+    let field_id_3 = game.get_field_id(klass, "cB", "I")?;
+    let minecraft = game.get_static_object_field(klass, field_id)?;
+    let the_player = game.get_static_object_field(klass_2, field_id_2)?;
+    let held_item = get_held_item(the_player, game)?;
+    let mut count = get_stack_count(held_item, game)?;
+    game.write_field(minecraft,field_id_3,0i32);
+    Some(())
+}
 pub fn rotations(entity:u64, game_process: &mut GameProcess) -> Option<[f32; 2]> {
     let entity_klass = game_process.find_class("com/craftrise/m9")?;
     let yaw_id = game_process.get_field_id(entity_klass,"bL","F")?;
@@ -74,6 +113,35 @@ pub fn rotations(entity:u64, game_process: &mut GameProcess) -> Option<[f32; 2]>
         yaw += 360.0;
     }
     Some([yaw,pitch])
+}
+pub fn w_rotations(entity:u64,rots:[f32; 2], game_process: &mut GameProcess) -> Option<()> {
+    let entity_klass = game_process.find_class("com/craftrise/m9")?;
+    let yaw_id = game_process.get_field_id(entity_klass,"bL","F")?;
+    let pitch_id = game_process.get_field_id(entity_klass,"N","F")?;
+    game_process.write_field(entity,yaw_id,rots[0]);
+    game_process.write_field(entity,pitch_id,rots[1]);
+    Some(())
+}
+pub fn get_predicted_entity_position(entity:u64,amp:f64,game_process: &mut GameProcess) -> Option<Position>
+{
+    let entity_klass = game_process.find_class("com/craftrise/m9")?;
+    let pos_x_id = game_process.get_field_id(entity_klass,"bE","D")?;
+    let pos_y_id = game_process.get_field_id(entity_klass,"aY","D")?;
+    let pos_z_id = game_process.get_field_id(entity_klass,"bH","D")?;
+    let pos_x:f64 = game_process.get_value_field(entity,pos_x_id)?;
+    let pos_y:f64 = game_process.get_value_field(entity,pos_y_id)?;
+    let pos_z:f64 = game_process.get_value_field(entity,pos_z_id)?;
+    let lpos_x_id = game_process.get_field_id(entity_klass,"a6","D")?;
+    let lpos_y_id = game_process.get_field_id(entity_klass,"h","D")?;
+    let lpos_z_id = game_process.get_field_id(entity_klass,"G","D")?;
+    let lpos_x:f64 = game_process.get_value_field(entity,lpos_x_id)?;
+    let lpos_y:f64 = game_process.get_value_field(entity,lpos_y_id)?;
+    let lpos_z:f64 = game_process.get_value_field(entity,lpos_z_id)?;
+    Some(Position {
+        x: pos_x +(pos_x-lpos_x)*amp,
+        y: pos_y + (pos_y-lpos_y),
+        z: pos_z + (pos_z-lpos_z)*amp,
+    })
 }
 pub fn get_entity_position(entity:u64,game_process: &mut GameProcess) -> Option<Position>
 {
@@ -121,6 +189,18 @@ pub fn get_held_item(entity:u64,game_process: &mut GameProcess) -> Option<u64> {
     let current_item:i32 = game_process.get_value_field(inventory,current_item_id)?;
     let item = items.get(current_item as usize)?;
     Some(*item)
+}
+pub fn switch(entity:u64,switch:u64,game_process: &mut GameProcess) -> Option<()> {
+    let entity_player_klass = game_process.find_class("com/craftrise/mg")?;
+    let inventory_player_klass = game_process.find_class("com/craftrise/lU")?;
+    let inventory_field_id = game_process.get_field_id(entity_player_klass,"J","Lcom/craftrise/lU;")?;
+    let current_item_id = game_process.get_field_id(inventory_player_klass,"c","I")?;
+    let inventory = game_process.get_object_field(entity,inventory_field_id)?;
+    let current_item:i32 = game_process.get_value_field(inventory,current_item_id)?;
+    game_process.write_field(inventory,current_item_id,8i32);
+    thread::sleep(Duration::from_millis(switch));
+    game_process.write_field(inventory,current_item_id,current_item);
+    Some(())
 }
 pub fn get_stack_count(item_stack:u64 , game_process: &mut GameProcess) -> Option<i32>
 {
