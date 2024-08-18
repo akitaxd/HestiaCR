@@ -34,7 +34,7 @@ fn custom_window_frame(ctx: &egui::Context, title: &str, add_contents: impl FnOn
     catppuccin_egui::set_theme(ctx, catppuccin_egui::LATTE);
     let panel_frame = egui::Frame {
         fill: ctx.style().visuals.window_fill(),
-        rounding: 8.0.into(),
+        rounding: 2.0.into(),
         stroke: ctx.style().visuals.widgets.noninteractive.fg_stroke,
         outer_margin: 0.5.into(), // so the stroke is within the bounds
         ..Default::default()

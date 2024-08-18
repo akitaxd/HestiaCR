@@ -2,6 +2,7 @@ pub mod jvm;
 pub mod offsets;
 
 use std::{mem, ptr};
+use std::collections::HashMap;
 use winapi::shared::minwindef::{FALSE, LPCVOID, LPVOID};
 use winapi::um::memoryapi::ReadProcessMemory;
 use winapi::um::processthreadsapi::OpenProcess;
@@ -10,7 +11,8 @@ use crate::memory::{get_module_address_by_name, get_process_pid_by_name};
 
 pub struct GameProcess {
     pub hProcess:HANDLE,
-    pub jvm_ptr:u64
+    pub jvm_ptr:u64,
+    pub cache: HashMap<String, u64>,
 }
 pub trait Readable {
    fn read<typ>(&self,addr:u64) -> Option<typ>;
@@ -25,6 +27,7 @@ impl GameProcess {
             Some(GameProcess {
                 hProcess: OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid),
                 jvm_ptr: jvm,
+                cache: HashMap::new(),
             })
         }
     }
@@ -37,6 +40,7 @@ impl GameProcess {
             Some(GameProcess {
                 hProcess: OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid),
                 jvm_ptr: jvm,
+                cache: HashMap::new(),
             })
         }
     }

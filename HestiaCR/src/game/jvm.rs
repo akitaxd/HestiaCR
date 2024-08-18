@@ -11,34 +11,35 @@ pub fn hashcode(str: &str) -> u32 {
 }
 
 pub trait JVM_Control {
-    fn system_class_loader(&self) -> Option<u64>;
-    fn find_symbol(&self,name:&str) -> Option<u64>;
-    fn decode_oop(&self,oop:u32) -> Option<u64>;
-    fn encode_oop(&self,oop:u64) -> Option<u32>;
-    fn decode_klass(&self,oop:u32) -> Option<u64>;
-    fn encode_klass(&self,oop:u64) -> Option<u32>;
-    fn find_class_from_classloader(&self,name:&str,loader:u64) -> Option<u64>;
-    fn find_class(&self,name:&str) -> Option<u64>;
-    fn find_local_field(&self,klass:u64,namesym:u64,sigsym:u64) -> Option<u16>;
-    fn find_interface_field(&self,klass:u64,namesym:u64,sigsym:u64) -> Option<u16>;
-    fn find_field(&self,klass:u64,name_sym:u64,sig_sym:u64) -> Option<u16>;
-    fn get_field_id(&self,klass:u64,name:&str,sig:&str) -> Option<u16>;
-    fn get_static_object_field(&self,klass:u64,field_id:u16) -> Option<u64>;
-    fn get_object_field(&self,oop:u64,field_id:u16) -> Option<u64>;
-    fn get_static_value_field<typ>(&self,klass:u64,field_id:u16) -> Option<typ>;
-    fn get_value_field<typ>(&self,klass:u64,field_id:u16) -> Option<typ>;
-    fn is_instance_of(&self,obj:u64,klass:u64) -> bool;
-    fn get_obj_klass(&self,obj:u64) -> Option<u64>;
-    fn get_super_klass(&self,obj:u64) -> Option<u64>;
+    fn system_class_loader(&mut self) -> Option<u64>;
+    fn find_symbol(&mut self,name:&str) -> Option<u64>;
+    fn decode_oop(&mut self,oop:u32) -> Option<u64>;
+    fn encode_oop(&mut self,oop:u64) -> Option<u32>;
+    fn decode_klass(&mut self,oop:u32) -> Option<u64>;
+    fn encode_klass(&mut self,oop:u64) -> Option<u32>;
+    fn find_class_from_classloader(&mut self,name:&str,loader:u64) -> Option<u64>;
+    fn find_class(&mut self,name:&str) -> Option<u64>;
+    fn find_local_field(&mut self,klass:u64,namesym:u64,sigsym:u64) -> Option<u16>;
+    fn find_interface_field(&mut self,klass:u64,namesym:u64,sigsym:u64) -> Option<u16>;
+    fn find_field(&mut self,klass:u64,name_sym:u64,sig_sym:u64) -> Option<u16>;
+    fn get_field_id(&mut self,klass:u64,name:&str,sig:&str) -> Option<u16>;
+    fn get_static_object_field(&mut self,klass:u64,field_id:u16) -> Option<u64>;
+    fn get_object_field(&mut self,oop:u64,field_id:u16) -> Option<u64>;
+    fn get_static_value_field<typ>(&mut self,klass:u64,field_id:u16) -> Option<typ>;
+    fn get_value_field<typ>(&mut self,klass:u64,field_id:u16) -> Option<typ>;
+    fn is_instance_of(&mut self,obj:u64,klass:u64) -> bool;
+    fn get_obj_klass(&mut self,obj:u64) -> Option<u64>;
+    fn get_super_klass(&mut self,obj:u64) -> Option<u64>;
+    fn get_array_elements(&mut self,oop:u64,len:i32) -> Option<Vec<u64>>;
 
 
 }
 impl JVM_Control for GameProcess {
-    fn system_class_loader(&self) -> Option<u64> {
+    fn system_class_loader(&mut self) -> Option<u64> {
         self.read(self.jvm_ptr + JVM_SYSTEMCL)
     }
 
-    fn find_symbol(&self, name: &str) -> Option<u64> {
+    fn find_symbol(&mut self, name: &str) -> Option<u64> {
         let seed:u64 = self.read(self.jvm_ptr+JVM_SEED_SYMBOLTABLE)?;
         if seed != 0 {
             panic!("Seed should be zero")
@@ -77,7 +78,7 @@ impl JVM_Control for GameProcess {
        None
     }
 
-    fn decode_oop(&self, oop: u32) -> Option<u64> {
+    fn decode_oop(&mut self, oop: u32) -> Option<u64> {
         let flag: bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_OOPS)?;
         if flag {
             let base: u64 = self.read(self.jvm_ptr + JVM_COMPRESSED_OOPS_BASE)?;
@@ -87,7 +88,7 @@ impl JVM_Control for GameProcess {
         Some(oop as u64)
     }
 
-    fn encode_oop(&self, oop: u64) -> Option<u32> {
+    fn encode_oop(&mut self, oop: u64) -> Option<u32> {
         let flag: bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_OOPS)?;
         if flag {
             let base: u64 = self.read(self.jvm_ptr + JVM_COMPRESSED_OOPS_BASE)?;
@@ -97,7 +98,7 @@ impl JVM_Control for GameProcess {
         Some(oop as u32)
     }
 
-    fn decode_klass(&self, klass: u32) -> Option<u64> {
+    fn decode_klass(&mut self, klass: u32) -> Option<u64> {
         let flag: bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_CLASS_POINTERS)?;
         if flag {
             let base: u64 = self.read(self.jvm_ptr + JVM_COMPRESSED_CLASS_POINTERS_BASE)?;
@@ -107,7 +108,7 @@ impl JVM_Control for GameProcess {
         Some(klass as u64)
     }
 
-    fn encode_klass(&self, klass: u64) -> Option<u32> {
+    fn encode_klass(&mut self, klass: u64) -> Option<u32> {
         let flag: bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_CLASS_POINTERS)?;
         if flag {
             let base: u64 = self.read(self.jvm_ptr + JVM_COMPRESSED_CLASS_POINTERS_BASE)?;
@@ -118,7 +119,10 @@ impl JVM_Control for GameProcess {
     }
 
 
-    fn find_class_from_classloader(&self, name: &str, loader: u64) -> Option<u64> {
+    fn find_class_from_classloader(&mut self, name: &str, loader: u64) -> Option<u64> {
+        if self.cache.contains_key(&name.to_string()) {
+            return Some(*self.cache.get(&name.to_string()).unwrap());
+        }
         let mut symbol = self.find_symbol(name)?;
         if symbol == 0 {
             return None;
@@ -139,18 +143,23 @@ impl JVM_Control for GameProcess {
         while entry != 0 {
             let entry_hash:u32 = self.read(entry)?;
             if entry_hash == hash{
-                return self.read(entry+0x10);
+                let klass = self.read(entry+0x10);
+                if klass.is_some() {
+                    self.cache.insert(name.to_string(),klass?);
+                }
+                return klass;
             }
             entry = self.read(entry+8)?;
         }
         None
     }
 
-    fn find_class(&self, name: &str) -> Option<u64> {
-        self.find_class_from_classloader(name,self.system_class_loader()?)
+    fn find_class(&mut self, name: &str) -> Option<u64> {
+        let cl = self.system_class_loader()?;
+        self.find_class_from_classloader(name,cl)
     }
 
-    fn find_local_field(&self, klass: u64, namesym: u64, sigsym: u64) -> Option<u16> {
+    fn find_local_field(&mut self, klass: u64, namesym: u64, sigsym: u64) -> Option<u16> {
         let size_of_unsigned_short = size_of_val(&0u16) as u64;
 
         let constants:u64 = self.read(klass + JVM_KLASS_CONSTANTS)?;
@@ -174,7 +183,7 @@ impl JVM_Control for GameProcess {
         None
     }
 
-    fn find_interface_field(&self, klass: u64, namesym: u64, sigsym: u64) -> Option<u16> {
+    fn find_interface_field(&mut self, klass: u64, namesym: u64, sigsym: u64) -> Option<u16> {
         let mut interfaces:u64 = self.read(klass + JVM_KLASS_INTERFACES)?;
         let mut offset:u16  = 0;
         let interfaces_size:i32 = self.read(interfaces)?;
@@ -193,7 +202,7 @@ impl JVM_Control for GameProcess {
         None
     }
 
-    fn find_field(&self, klass: u64, name_symbol: u64, sig_symbol: u64) -> Option<u16> {
+    fn find_field(&mut self, klass: u64, name_symbol: u64, sig_symbol: u64) -> Option<u16> {
         let mut offset:u16 = self.find_local_field(klass,name_symbol,sig_symbol)?;
         if offset == 0 {
             offset = self.find_interface_field(klass,name_symbol,sig_symbol)?;
@@ -207,7 +216,7 @@ impl JVM_Control for GameProcess {
         Some(offset)
     }
 
-    fn get_field_id(&self, klass: u64, name: &str, sig: &str) -> Option<u16> {
+    fn get_field_id(&mut self, klass: u64, name: &str, sig: &str) -> Option<u16> {
         let sig_symbol = self.find_symbol(sig)?;
         let name_symbol = self.find_symbol(name)?;
         let id = self.find_field(klass,name_symbol,sig_symbol)?;
@@ -217,27 +226,27 @@ impl JVM_Control for GameProcess {
         Some(id)
     }
 
-    fn get_static_object_field(&self, klass: u64, field_id: u16) -> Option<u64> {
+    fn get_static_object_field(&mut self, klass: u64, field_id: u16) -> Option<u64> {
         let class_oop:u64 = self.read(klass + JVM_KLASS_JAVAMIRROR)?;
         let value:u32 = self.read(class_oop + (field_id as u64))?;
         self.decode_oop(value)
     }
 
-    fn get_object_field(&self, oop: u64, field_id: u16) -> Option<u64> {
+    fn get_object_field(&mut self, oop: u64, field_id: u16) -> Option<u64> {
         let value:u32 = self.read(oop + (field_id as u64))?;
         self.decode_oop(value)
     }
 
-    fn get_static_value_field<typ>(&self, klass: u64, field_id: u16) -> Option<typ> {
+    fn get_static_value_field<typ>(&mut self, klass: u64, field_id: u16) -> Option<typ> {
         let class_oop:u64 = self.read(klass + JVM_KLASS_JAVAMIRROR)?;
         self.read(class_oop + (field_id as u64))
     }
 
-    fn get_value_field<typ>(&self, oop: u64, field_id: u16) -> Option<typ> {
+    fn get_value_field<typ>(&mut self, oop: u64, field_id: u16) -> Option<typ> {
         self.read(oop + (field_id as u64))
     }
 
-    fn is_instance_of(&self, obj: u64, klass: u64) -> bool { //todo
+    fn is_instance_of(&mut self, obj: u64, klass: u64) -> bool { //todo
        /* let obj_klass = self.get_obj_klass(obj);
         let offset:u32 = self.read(obj_klass + JVM_KLASS_SUPER_OFFSET);
         let mut superr:u64 = self.read(obj_klass + offset as u64);
@@ -256,7 +265,7 @@ impl JVM_Control for GameProcess {
         true
     }
 
-    fn get_obj_klass(&self, obj: u64) -> Option<u64> {
+    fn get_obj_klass(&mut self, obj: u64) -> Option<u64> {
         let flag:bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_CLASS_POINTERS)?;
         if flag {
             let klass:u32 = self.read(obj + JVM_OOP_KLASS)?;
@@ -265,7 +274,23 @@ impl JVM_Control for GameProcess {
         self.read(obj + JVM_OOP_KLASS)
     }
 
-    fn get_super_klass(&self, obj: u64) -> Option<u64> {
+    fn get_super_klass(&mut self, obj: u64) -> Option<u64> {
         self.read(obj + JVM_KLASS_SUPER)
+    }
+
+    fn get_array_elements(&mut self, oop: u64, len: i32) -> Option<Vec<u64>> {
+        let flag:bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_CLASS_POINTERS)?;
+        let base = {
+            if flag {
+                0x10
+            }else {
+                0x18
+            }
+        };
+        let mut vec:Vec<u64> = Vec::new();
+        for index in 0..len {
+            vec.push(self.get_object_field(oop, (base + (index as u64) * size_of_val(&0i32) as u64) as u16)?);
+        }
+        Some(vec)
     }
 }

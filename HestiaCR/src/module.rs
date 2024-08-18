@@ -1,5 +1,6 @@
 pub mod trigger_bot;
 mod aim_assist;
+mod utils;
 
 use crate::game::GameProcess;
 use crate::module::aim_assist::AimAssist;
@@ -16,7 +17,7 @@ impl ModuleCollection {
             aim_assist: AimAssist { enabled: false, speed: 1, fov: 70.0, last_target: Default::default() },
         }
     }
-    pub fn tick(&mut self, game:&GameProcess) -> Option<()>{
+    pub fn tick(&mut self, game:&mut GameProcess) -> Option<()>{
         if self.trigger_bot.enabled {
             self.trigger_bot.tick(game);
         }
@@ -28,5 +29,5 @@ impl ModuleCollection {
 
 }
 pub trait Tick {
-    fn tick(&mut self,game:&GameProcess) -> Option<()>;
+    fn tick(&mut self,game:&mut GameProcess) -> Option<()>;
 }

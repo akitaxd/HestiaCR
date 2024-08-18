@@ -4,6 +4,7 @@ use winapi::um::winuser::{SendInput, INPUT, INPUT_MOUSE, MOUSEEVENTF_LEFTDOWN, M
 use crate::game::GameProcess;
 use crate::game::jvm::JVM_Control;
 use crate::module::Tick;
+use crate::module::utils::is_visible;
 
 pub struct TriggerBot {
     pub sleep:u64,
@@ -12,7 +13,7 @@ pub struct TriggerBot {
     pub last_war:u128,
 }
 impl Tick for TriggerBot {
-    fn tick(&mut self, game: &GameProcess) -> Option<()>
+    fn tick(&mut self, game: &mut GameProcess) -> Option<()>
     {
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
         if (now - self.last_clicked) > self.sleep as u128 {
@@ -36,8 +37,8 @@ impl Tick for TriggerBot {
                     }
                     let mouse_over_entity = game.get_object_field(mouse_over_object, field_id_3)?;
 
-                    if mouse_over_entity != 0 || now - self.last_war < 500 {
-                        if game.is_instance_of(mouse_over_entity,game.find_class("com/craftrise/mg")?) {
+                    if mouse_over_entity != 0 || now - self.last_war < 3500 {
+                        if mouse_over_entity == 0 || is_visible(mouse_over_entity,game)? {
                             if mouse_over_entity != 0 {
                                 self.last_war = now;
                             }

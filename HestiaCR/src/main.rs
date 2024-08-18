@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 
 
 use std::fmt::Debug;
@@ -27,11 +27,11 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
     thread::spawn(|| unsafe {
-        let game = GameProcess::craftrise().unwrap();
+        let mut game = GameProcess::craftrise().unwrap();
         loop {
             let collection_wrapper = collection.as_ref().unwrap();
             let mut lock = collection_wrapper.lock().unwrap();
-            lock.tick(&game);
+            lock.tick(&mut game);
         }
     });
     eframe::run_native(
