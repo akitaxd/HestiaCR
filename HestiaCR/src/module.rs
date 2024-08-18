@@ -18,7 +18,7 @@ impl ModuleCollection {
         ModuleCollection {
             trigger_bot: TriggerBot { sleep: 80, enabled: false, last_clicked: 0, last_war: 0 },
             aim_assist: AimAssist { enabled: false, speed: 1, fov: 70.0, last_target: Default::default() },
-            fast_place: FastPlace {enabled: false},
+            fast_place: FastPlace {enabled: false, disable_on_rod: false },
         }
     }
     pub fn tick(&mut self, game:&mut GameProcess) -> Option<()>{
