@@ -12,16 +12,31 @@ impl eframe::App for UI {
         custom_window_frame(ctx, "hestia beta", |ui| unsafe {
             let collection_wrapper = collection.as_ref().unwrap();
             let mut lock = collection_wrapper.lock().unwrap();
-            ui.heading("Trigger Bot");
-            ui.checkbox(&mut lock.trigger_bot.enabled, "Enabled");
-            ui.add(egui::Slider::new(&mut lock.trigger_bot.sleep, 40..=170).text("Sleep"));
-            ui.separator();
-            ui.heading("Aim Assist");
-            ui.checkbox(&mut lock.aim_assist.enabled, "Enabled");
-            ui.add(egui::Slider::new(&mut lock.aim_assist.speed, 0..=15).text("Speed"));
-            ui.add(egui::Slider::new(&mut lock.aim_assist.fov, 0.0..=120.0).text("Fov"));
+
+
+            egui::CollapsingHeader::new("Combat")
+                .default_open(false)
+                .show(ui, |ui| {
+                    ui.heading("Trigger Bot");
+                    ui.checkbox(&mut lock.trigger_bot.enabled, "Enabled");
+                    ui.add(egui::Slider::new(&mut lock.trigger_bot.sleep, 40..=170).text("Sleep"));
+                    ui.separator();
+                    ui.heading("Aim Assist");
+                    ui.checkbox(&mut lock.aim_assist.enabled, "Enabled");
+                    ui.add(egui::Slider::new(&mut lock.aim_assist.speed, 0..=15).text("Speed"));
+                    ui.add(egui::Slider::new(&mut lock.aim_assist.fov, 0.0..=120.0).text("Fov"));
+                });
+
             ui.separator();
 
+
+            egui::CollapsingHeader::new("Misc")
+                .default_open(false)
+                .show(ui, |ui| {
+                    ui.heading("Fast Place");
+                    ui.checkbox(&mut lock.fast_place.enabled , "Enabled");
+                    ui.checkbox(&mut lock.fast_place.disable_on_rod , "Disable When Holding Rod");
+                });
         });
     }
 

@@ -1,5 +1,5 @@
 use std::ptr::eq;
-use crate::game::{GameProcess, Readable};
+use crate::game::{GameProcess, Readable, Writeable};
 use crate::game::offsets::{JVM_COMPRESSED_CLASS_POINTERS_BASE, JVM_COMPRESSED_CLASS_POINTERS_SHIFT, JVM_COMPRESSED_OOPS_BASE, JVM_COMPRESSED_OOPS_SHIFT, JVM_CP_BASE, JVM_KLASS_CONSTANTS, JVM_KLASS_FIELDS, JVM_KLASS_FIELDS_COUNT, JVM_KLASS_INTERFACES, JVM_KLASS_JAVAMIRROR, JVM_KLASS_SEC_SUPERS, JVM_KLASS_SUPER, JVM_KLASS_SUPER_OFFSET, JVM_OOP_KLASS, JVM_SEED_SYMBOLTABLE, JVM_SYMBOLTABLE, JVM_SYSTEMCL, JVM_SYSTEMDICTIONARY, JVM_USE_COMPRESSED_CLASS_POINTERS, JVM_USE_COMPRESSED_OOPS};
 
 pub fn hashcode(str: &str) -> u32 {
@@ -30,11 +30,17 @@ pub trait JVM_Control {
     fn is_instance_of(&mut self,obj:u64,klass:u64) -> bool;
     fn get_obj_klass(&mut self,obj:u64) -> Option<u64>;
     fn get_super_klass(&mut self,obj:u64) -> Option<u64>;
-    fn get_array_elements(&mut self,oop:u64,len:i32) -> Option<Vec<u64>>;
+    fn get_object_array_elements(&mut self,oop:u64,len:i32) -> Option<Vec<u64>>;
+    fn get_value_array_elements<typ>(&mut self,oop:u64,len:i32) -> Option<Vec<typ>>;
+
+    fn write_field<typ>(&mut self,oop:u64,field:u16,value:typ);
 
 
 }
 impl JVM_Control for GameProcess {
+    fn write_field<typ>(&mut self, oop: u64, field: u16, value: typ) {
+        self.write(oop + field as u64 , value);
+    }
     fn system_class_loader(&mut self) -> Option<u64> {
         self.read(self.jvm_ptr + JVM_SYSTEMCL)
     }
@@ -278,9 +284,10 @@ impl JVM_Control for GameProcess {
         self.read(obj + JVM_KLASS_SUPER)
     }
 
-    fn get_array_elements(&mut self, oop: u64, len: i32) -> Option<Vec<u64>> {
+
+    fn get_object_array_elements(&mut self, oop: u64, len: i32) -> Option<Vec<u64>> {
         let flag:bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_CLASS_POINTERS)?;
-        let base = {
+        let base:u16 = {
             if flag {
                 0x10
             }else {
@@ -289,7 +296,26 @@ impl JVM_Control for GameProcess {
         };
         let mut vec:Vec<u64> = Vec::new();
         for index in 0..len {
-            vec.push(self.get_object_field(oop, (base + (index as u64) * size_of_val(&0i32) as u64) as u16)?);
+            println!("{index}");
+            vec.push(self.get_object_field(oop, base + index as u16 * 4)?);
+            println!("finish {index}");
+        }
+        Some(vec)
+    }
+
+    fn get_value_array_elements<typ>(&mut self, oop: u64, len: i32) -> Option<Vec<typ>> {
+        let flag:bool = self.read(self.jvm_ptr + JVM_USE_COMPRESSED_CLASS_POINTERS)?;
+        let base = {
+            if flag {
+                0x10
+            }else {
+                0x18
+            }
+        };
+        let mut vec:Vec<typ> = Vec::new();
+        for index in 0..len {
+            let value:typ = self.get_value_field(oop, (base + (index as u64) * size_of_val(&0i32) as u64) as u16)?;
+            vec.push(value);
         }
         Some(vec)
     }

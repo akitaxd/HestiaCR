@@ -102,12 +102,31 @@ pub fn is_visible(entity:u64,game_process:&mut GameProcess) -> Option<bool>
     let watchable_byte_value_id = game_process.get_field_id(watchable_klass,"a", "Ljava/lang/Byte;")?;
     let data_watcher_obj = game_process.get_object_field(entity,data_watcher_id)?;
     let values = game_process.get_object_field(data_watcher_obj,values_id)?;
-    let flags:Vec<u64> = game_process.get_array_elements(values,1)?;
+    let flags:Vec<u64> = game_process.get_object_array_elements(values,1)?;
     let flag_byte_base = *flags.get(0)?;
     let watchable_byte_value = game_process.get_object_field(flag_byte_base,watchable_byte_value_id)?;
     let flag:i8 = game_process.get_value_field(watchable_byte_value,byte_value_id)?;
     let visible = (flag & 1 << 5) == 0;
     Some(visible)
+}
+pub fn get_held_item(entity:u64,game_process: &mut GameProcess) -> Option<u64> {
+    let entity_player_klass = game_process.find_class("com/craftrise/mg")?;
+    let inventory_player_klass = game_process.find_class("com/craftrise/lU")?;
+    let inventory_field_id = game_process.get_field_id(entity_player_klass,"J","Lcom/craftrise/lU;")?;
+    let main_inv_id = game_process.get_field_id(inventory_player_klass,"e","[Lcom/craftrise/gM;")?;
+    let current_item_id = game_process.get_field_id(inventory_player_klass,"c","I")?;
+    let inventory = game_process.get_object_field(entity,inventory_field_id)?;
+    let main_inventory_object = game_process.get_object_field(inventory,main_inv_id)?;
+    let items = game_process.get_object_array_elements(main_inventory_object,36)?;
+    let current_item:i32 = game_process.get_value_field(inventory,current_item_id)?;
+    let item = items.get(current_item as usize)?;
+    Some(*item)
+}
+pub fn get_stack_count(item_stack:u64 , game_process: &mut GameProcess) -> Option<i32>
+{
+    let item_stack_k = game_process.find_class("com/craftrise/gM")?;
+    let count_id = game_process.get_field_id(item_stack_k,"a","I")?;
+    game_process.get_value_field(item_stack,count_id)
 }
 pub fn mouse_move(x:i64,y:i64)
 {

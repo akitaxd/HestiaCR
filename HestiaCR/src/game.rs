@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::ptr::null_mut;
 use winapi::shared::minwindef::{FALSE, LPCVOID, LPVOID};
 use winapi::shared::windef::HWND;
-use winapi::um::memoryapi::ReadProcessMemory;
+use winapi::um::memoryapi::{ReadProcessMemory, WriteProcessMemory};
 use winapi::um::processthreadsapi::OpenProcess;
 use winapi::um::winnt::{HANDLE, PROCESS_ALL_ACCESS};
 use winapi::um::winuser::FindWindowA;
@@ -20,6 +20,9 @@ pub struct GameProcess {
 }
 pub trait Readable {
    fn read<typ>(&self,addr:u64) -> Option<typ>;
+}
+pub trait Writeable {
+    fn write<typ>(&self,addr:u64,value:typ);
 }
 impl GameProcess {
     pub fn custom(process:&str,window:&str) -> Option<GameProcess> {
@@ -60,6 +63,13 @@ impl Readable for GameProcess {
                 return None
             }
             Some(buffer)
+        }
+    }
+}
+impl Writeable for GameProcess {
+    fn write<typ>(&self, addr: u64, mut value: typ) {
+        unsafe {
+            WriteProcessMemory(self.hProcess,addr as LPVOID,&mut value as *mut _ as LPCVOID,size_of_val(&value),null_mut());
         }
     }
 }
