@@ -1,3 +1,4 @@
+use winapi::um::winuser::{GetAsyncKeyState, VK_LBUTTON};
 use crate::game::GameProcess;
 use crate::game::jvm::JVM_Control;
 use crate::module::Tick;
@@ -48,24 +49,26 @@ impl Tick for AimAssist {
                 distance = position.distance_to(&my_position);
             }
         }
-        if self.last_target.target != 0 && is_visible(self.last_target.target,game)?{
-            if distance > 1.0 && distance < 4.7 {
-                let current_rotations = rotations(the_player,game)?;
-                let rotations = my_position.rotation_to(&position);
-                let diff = (current_rotations[0] - rotations[0]).abs();
-                if (diff > self.speed as f32) && (diff < self.fov) {
-                    if current_rotations[0] > rotations[0] + self.speed as f32 * 2.0 {
-                        for _ in 0..self.speed {
-                            mouse_move(-1,0,game);
+        unsafe {
+            if self.last_target.target != 0 && is_visible(self.last_target.target,game)? && GetAsyncKeyState(VK_LBUTTON) != 0 {
+                if distance > 1.0 && distance < 4.7 {
+                    let current_rotations = rotations(the_player,game)?;
+                    let rotations = my_position.rotation_to(&position);
+                    let diff = (current_rotations[0] - rotations[0]).abs();
+                    if (diff > self.speed as f32) && (diff < self.fov) {
+                        if current_rotations[0] > rotations[0] + self.speed as f32 * 2.0 {
+                            for _ in 0..self.speed {
+                                mouse_move(-1,0);
+                            }
+                        }
+                        if current_rotations[0] < rotations[0] - self.speed as f32 * 2.0 {
+                            for _ in 0..self.speed {
+                                mouse_move(1,0);
+                            }
                         }
                     }
-                    if current_rotations[0] < rotations[0] - self.speed as f32 * 2.0 {
-                        for _ in 0..self.speed {
-                            mouse_move(1,0,game);
-                        }
-                    }
-                }
 
+                }
             }
         }
         Some(())
