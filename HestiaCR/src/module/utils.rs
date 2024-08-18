@@ -1,13 +1,12 @@
+use winapi::um::winuser::WM_MOUSEMOVE;
 use winapi::um::winnt::LONG;
-use winapi::um::winuser::SendInput;
-use winapi::um::winuser::MOUSEEVENTF_MOVE;
-use winapi::um::winuser::INPUT_MOUSE;
+use winapi::um::winuser::{GetAsyncKeyState, PostMessageA, SendInput, INPUT, INPUT_MOUSE, MK_LBUTTON, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEINPUT, WM_LBUTTONDOWN, WM_LBUTTONUP};
+
 use std::f64::consts::PI;
 use std::time::{SystemTime, UNIX_EPOCH};
-use winapi::um::winuser::INPUT;
 use crate::game::GameProcess;
 use crate::game::jvm::JVM_Control;
-use winapi::um::winuser::LPINPUT;
+
 pub struct Position {
     pub x:f64,
     pub y:f64,
@@ -107,30 +106,11 @@ pub fn is_visible(entity:u64,game_process:&mut GameProcess) -> Option<bool>
     let visible = (flag & 1 << 5) == 0;
     Some(visible)
 }
-pub fn mouse_move(x:i64,y:i64)
+pub fn mouse_move(x:i64,y:i64,game:&mut GameProcess)
 {
-
-    let mut input = INPUT {
-        type_: INPUT_MOUSE,
-        u: unsafe { std::mem::zeroed() },
-    };
-
-    let mouse_input = unsafe {
-        std::mem::transmute::<_, *mut winapi::um::winuser::MOUSEINPUT>(&mut input.u)
-    };
-
-    unsafe {
-        (*mouse_input).dx = x as LONG;
-        (*mouse_input).dy = y as LONG;
-        (*mouse_input).mouseData = 0;
-        (*mouse_input).dwFlags = MOUSEEVENTF_MOVE;
-        (*mouse_input).time = 0;
-        (*mouse_input).dwExtraInfo = 0;
-    }
-
-    unsafe {
-        SendInput(1, &mut input as *mut _ as LPINPUT, std::mem::size_of::<INPUT>() as i32);
-    }
+unsafe {
+    PostMessageA(game.hWindow, WM_MOUSEMOVE, 0, ((x & 0xFFFF) | ((y & 0xFFFF) << 16)).try_into().unwrap());
+}
 }
 pub struct AimAssist {
     pub enabled:bool,

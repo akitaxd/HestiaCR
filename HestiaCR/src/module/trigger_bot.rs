@@ -1,6 +1,6 @@
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use winapi::um::winuser::{SendInput, INPUT, INPUT_MOUSE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEINPUT};
+use winapi::um::winuser::{GetAsyncKeyState, PostMessageA, SendInput, INPUT, VK_LBUTTON, MK_LBUTTON, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEINPUT, WM_LBUTTONDOWN, WM_LBUTTONUP};
 use crate::game::GameProcess;
 use crate::game::jvm::JVM_Control;
 use crate::module::Tick;
@@ -37,26 +37,13 @@ impl Tick for TriggerBot {
                     }
                     let mouse_over_entity = game.get_object_field(mouse_over_object, field_id_3)?;
 
-                    if mouse_over_entity != 0 || now - self.last_war < 3500 {
-                        if mouse_over_entity == 0 || is_visible(mouse_over_entity,game)? {
+                    if mouse_over_entity != 0 || now - self.last_war < 6500 {
+                        if (mouse_over_entity == 0 || is_visible(mouse_over_entity,game)?) && GetAsyncKeyState(VK_LBUTTON) != 0 {
                             if mouse_over_entity != 0 {
                                 self.last_war = now;
                             }
-                            let mut input = INPUT {
-                                type_: INPUT_MOUSE,
-                                u: std::mem::zeroed(),
-                            };
-                            *input.u.mi_mut() = MOUSEINPUT {
-                                dx: 0,
-                                dy: 0,
-                                mouseData: 0,
-                                dwFlags: MOUSEEVENTF_LEFTDOWN,
-                                time: 0,
-                                dwExtraInfo: 0,
-                            };
-                            SendInput(1, &mut input, std::mem::size_of::<INPUT>() as i32);
-                            input.u.mi_mut().dwFlags = MOUSEEVENTF_LEFTUP;
-                            SendInput(1, &mut input, std::mem::size_of::<INPUT>() as i32);
+                            PostMessageA(game.hWindow, WM_LBUTTONDOWN, MK_LBUTTON as usize, (100 & 0xFFFF) | ((100 & 0xFFFF) << 16));
+                            PostMessageA(game.hWindow, WM_LBUTTONUP, 0, (100 & 0xFFFF) | ((100 & 0xFFFF) << 16));
                         }
                     }
                 }
