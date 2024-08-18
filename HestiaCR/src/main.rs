@@ -34,7 +34,7 @@ fn main() -> eframe::Result {
             let mut lock = collection_wrapper.lock().unwrap();
             lock.tick(&mut game);
             drop(lock);
-            thread::sleep(Duration::from_millis(10));
+            thread::sleep(Duration::from_millis(1));
         }
     });
     eframe::run_native(

@@ -39,6 +39,7 @@ impl Tick for TriggerBot {
 
                     if mouse_over_entity != 0 || now - self.last_war < 6500 {
                         if (mouse_over_entity == 0 || is_visible(mouse_over_entity,game)?) && GetAsyncKeyState(VK_LBUTTON) != 0 {
+                            println!("qwe");
                             if mouse_over_entity != 0 {
                                 self.last_war = now;
                             }

@@ -296,9 +296,7 @@ impl JVM_Control for GameProcess {
         };
         let mut vec:Vec<u64> = Vec::new();
         for index in 0..len {
-            println!("{index}");
             vec.push(self.get_object_field(oop, base + index as u16 * 4)?);
-            println!("finish {index}");
         }
         Some(vec)
     }
