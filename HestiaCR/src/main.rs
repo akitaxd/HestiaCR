@@ -4,6 +4,7 @@
 use std::fmt::Debug;
 use std::sync::Mutex;
 use std::thread;
+use std::time::Duration;
 use crate::game::GameProcess;
 use crate::game::jvm::JVM_Control;
 use crate::module::{ModuleCollection, Tick};
@@ -32,6 +33,8 @@ fn main() -> eframe::Result {
             let collection_wrapper = collection.as_ref().unwrap();
             let mut lock = collection_wrapper.lock().unwrap();
             lock.tick(&mut game);
+            drop(lock);
+            thread::sleep(Duration::from_millis(10));
         }
     });
     eframe::run_native(

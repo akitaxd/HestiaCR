@@ -12,8 +12,6 @@ impl eframe::App for UI {
         custom_window_frame(ctx, "hestia beta", |ui| unsafe {
             let collection_wrapper = collection.as_ref().unwrap();
             let mut lock = collection_wrapper.lock().unwrap();
-
-
             egui::CollapsingHeader::new("Combat")
                 .default_open(false)
                 .show(ui, |ui| {
@@ -45,11 +43,25 @@ impl eframe::App for UI {
     }
 }
 
+fn setup_custom_fonts(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+
+    fonts.font_data.insert(
+        "cpfont".to_owned(),
+        egui::FontData::from_static(include_bytes!("assets/font.ttf")),
+    );
+
+    fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().insert(0, "cpfont".to_owned());
+
+    ctx.set_fonts(fonts);
+}
+
+
 fn custom_window_frame(ctx: &egui::Context, title: &str, add_contents: impl FnOnce(&mut egui::Ui)) {
     catppuccin_egui::set_theme(ctx, catppuccin_egui::LATTE);
     let panel_frame = egui::Frame {
         fill: ctx.style().visuals.window_fill(),
-        rounding: 2.0.into(),
+        rounding: 12.0.into(),
         stroke: ctx.style().visuals.widgets.noninteractive.fg_stroke,
         outer_margin: 0.5.into(), // so the stroke is within the bounds
         ..Default::default()
@@ -128,7 +140,7 @@ fn close_maximize_minimize(ui: &mut egui::Ui) {
         ui.ctx().send_viewport_cmd(ViewportCommand::Close);
     }
     let minimized_response = ui
-        .add(Button::new(RichText::new("_").size(button_height)));
+        .add(Button::new(RichText::new("➖").size(button_height)));
     if minimized_response.clicked() {
         ui.ctx().send_viewport_cmd(ViewportCommand::Minimized(true));
     }
